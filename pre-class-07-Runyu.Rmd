@@ -44,6 +44,7 @@ exhaustbankroll <- function(nn,upprob=0.5,start=1000) {
   }
     
 simulation1 <- replicate(5000,exhaustbankroll(100,0.5,1000))
+# Get a vector of 1s (no bust) and 0s (bust) and sum them to find the mean - Augie
 (5000-sum(simulation1==100))/5000
 
 ```
@@ -79,6 +80,7 @@ exhaustbankroll <- function(nn,upprob=0.5,start=1000) {
   }
     
 simulation3 <- replicate(5000,exhaustbankroll(5000,0.5,1000))
+# Calculate the mean on trials that did bust before 5000 hands - Augie
 mean(simulation3[simulation3 <= 5000])
 ```
     d. the mean and variance of your bankroll after 100 hands (including busts).
@@ -91,9 +93,11 @@ exhaustbankroll <- function(nn,upprob=0.5,start=1000) {
     output[i] <- output[i-1]+200*rbinom(1,1,upprob)-100
   if(output[i]==0) break
   }
+  # Return the final value of your bankroll after 100 hands
   output[nn]
 }
  simulation4 <- replicate(5000,exhaustbankroll(100,0.5,1000))
+ # NA are busts, so we set to 0 - Augie
  simulation4[is.na(simulation4)] <-0
  mean(simulation4)
  var(simulation4)
