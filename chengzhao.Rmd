@@ -1,0 +1,175 @@
+---
+title: "Simulations Pre-Class Project"
+date: "Due March 13, 2017 at 5:00pm"
+output:
+  html_document
+
+
+---
+
+<style type="text/css">
+.table {
+
+    width: 80%;
+    margin-left:10%; 
+    margin-right:10%;
+}
+</style>
+```{r,setup, echo=FALSE, cache=TRUE}
+## numbers >= 10^5 will be denoted in scientific notation,
+## and rounded to 2 digits
+options(scipen = 3, digits = 6)
+```
+
+
+
+
+#Project Goals:
+
+
+With this project we will simulate a famoues probability problem. This will not require knowledge of probability or statistics but only the logic to follow the steps in order to simulate this problem. This is one way to solve problems by using the computer. 
+
+ 1. **Gambler's Ruin**: Suppose you have a bankroll of $1000 and make bets of $100 on a fair game. By simulating the outcome directly for at most 5000 iterations of the game (or hands), estimate:
+    a. the probability that you have "busted" (lost all your money) by the time you have placed your one hundredth bet. 
+    ```{r}
+ money_broken=function(date,N=5000,start=1000,bet=100){
+      stop_day=NA
+      money=rep(NA,N)
+      money[1]=start
+      for(i in 2:(date+1)){
+        money[i]=money[i-1]+(2*rbinom(1,1,0.5)-1)*bet
+        if(money[i]<=0){
+          return(TRUE)
+        }
+      } 
+      return(FALSE)
+    }
+    prob=mean(replicate(5000,money_broken(100)))
+    prob
+
+    ```
+    b. the probability that you have busted by the time you have placed your five hundredth bet by simulating the outcome directly. 
+    ```{r}
+    prob2=mean(replicate(5000,money_broken(500)))
+    prob2
+    ```
+    c. the mean time you go bust, given that you go bust within the first 5000 hands.
+    ```{r}
+      broken_date=function(N=5000,start=1000,bet=100){
+      stop_day=NA
+      money=rep(NA,N)
+      money[1]=start
+      for(i in 2:N){
+        money[i]=money[i-1]+(2*rbinom(1,1,0.5)-1)*bet
+        if(money[i]<=0){
+          return(i-1)
+        }
+      }
+      return(NA)
+      }
+    
+    est_time=mean(replicate(5000,broken_date()),na.rm=TRUE)
+    est_time
+    ```
+    d. the mean and variance of your bankroll after 100 hands (including busts).
+    ```{r}
+     bankroll=function(date,start=1000,bet=100){
+      N=date+1
+      stop_day=NA
+      money=rep(NA,N)
+      money[1]=start
+      for(i in 2:N){
+        money[i]=money[i-1]+(2*rbinom(1,1,0.5)-1)*bet
+      if(money[i]<=0){
+        return(0)
+      }
+      }
+      return(money[N])
+      }
+    mean_100=mean(replicate(5000,bankroll(100)))
+    var_100=var(replicate(5000,bankroll(100)))
+    mean_100
+    var_100
+    ```
+    e. the mean and variance of your bankroll after 500 hands (including busts).
+    
+```{r}
+    mean_500=mean(replicate(5000,bankroll(500)))
+    var_500=var(replicate(5000,bankroll(500)))
+    mean_500
+    var_500
+    ```
+Note: you *must* stop playing if your player has gone bust. How will you handle this in the `for` loop?
+
+2. **Markov Chains**. Suppose you have a game where the probability of winning on your first hand is 48%; each time you win, that probability goes up by one percentage point for the next game (to a maximum of 100%, where it must stay), and each time you lose, it goes back down to 48%. Assume you cannot go bust and that the size of your wager is a constant $100.
+    a. Is this a fair game? Simulate one hundred thousand sequential hands to determine the size of your return. Then repeat this simulation 99 more times to get a range of values to calculate the expectation.
+    ```{r}
+    wager_final=function(N,stat_rate,ori_wager,speed,max_rate=1,min_wager=0){
+       N1=N+1
+       wager=rep(NA,N1)
+       rate=rep(NA,N1)
+       wager[1]=ori_wager
+       rate[1]=stat_rate
+       for(i in 2:N1){
+         measure=rbinom(1,1,rate[i-1])
+         if(measure==1){
+           rate[i]=rate[i-1]+speed
+           if(rate[i]>max_rate){
+             rate[i]=max_rate
+           }
+           wager[i]=wager[i-1]+1
+         }else{
+         rate[i]=stat_rate
+          wager[i]=wager[i-1]-1
+          if(wager[i]<min_wager){
+            wager[i]=min_wager
+          }
+       }
+       }
+       final=wager[N1]
+       return(final)
+     }
+    
+    sample=replicate(100,wager_final(100000,0.48,100,0.01))
+    exp=mean(sample)
+    exp
+
+    ## it is not fair since the result is much less than 100
+    ```
+    b. Repeat this process but change the starting probability to a new value within 2% either way. Get the expected return after 100 repetitions. Keep exploring until you have a return value that is as fair as you can make it. Can you do this automatically?
+    ```{r}
+    for(i in 1:40){
+      k=0.48+1/2000
+      sample_new=replicate(100,wager_final(100000,k,100,0.01))
+      print(k)
+      exp_new=mean(sample_new)
+      print(exp_new)
+    }
+     ##In this step we can see the starting probability should be in the range of 0.4873 and 0.4874
+    for(j in 1:10){
+      k=0.4873+j/100000
+      sample_new=replicate(100,wager_final(100000,k,100,0.01))
+      print(k)
+      exp_new=mean(sample_new)
+      print(exp_new)
+    }
+   ##Finally, it should be about 48.731%
+    ```
+    c. Repeat again, keeping the initial probability at 48%, but this time change the probability increment to a value different from 1%. Get the expected return after 100 repetitions. Keep changing this value until you have a return value that is as fair as you can make it. 
+    ```{r}
+    for(i in 1:20){
+      k=0.0105+i/10000
+      sample_new=replicate(100,wager_final(100000,0.48,100,k))
+      print(k)
+      exp_new=mean(sample_new)
+      print(exp_new)
+     }
+    ##In thIs step, we know the increment to a value should be in the range of 0.0108 and 0.0109
+     for(i in 1:10){
+      k=0.0108+1/100000
+      sample_new=replicate(100,wager_final(100000,0.48,100,k))
+      print(k)
+      exp_new=mean(sample_new)
+      print(exp_new)
+     }
+     ##Finally, it should be about 1.089%
